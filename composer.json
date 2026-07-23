@@ -1,0 +1,57 @@
+{
+    "name": "rushing/laravel-pipeline-registry",
+    "description": "A thin, declarative registry over Illuminate\\Pipeline: named, runtime-mutable pipelines assembled from [[StageClass::class, [...options]]] tuples, discovered per-package from config/pipelines/*.php (category = filename). Tier-A mechanism only — it owns the registry and the executor wiring, never the stages' domain logic.",
+    "keywords": ["laravel", "pipeline", "registry", "stages"],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Stephen Rushing",
+            "email": "stephen@rushing.dev"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/console": "^11.0|^12.0|^13.0",
+        "illuminate/pipeline": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "symfony/finder": "^6.0|^7.0|^8.0"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.0",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "pestphp/pest": "^2.0|^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Rushing\\PipelineRegistry\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Rushing\\PipelineRegistry\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.0.x-dev"
+        },
+        "laravel": {
+            "providers": [
+                "Rushing\\PipelineRegistry\\PipelineRegistryServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        },
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "pint": "@php -d memory_limit=512M vendor/bin/pint"
+    }
+}
