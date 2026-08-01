@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 use Rushing\PipelineRegistry\Stages\CopyFilesPipeline;
 use Rushing\PipelineRegistry\Tests\Fixtures\EmitFileStage;
 

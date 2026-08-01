@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 use Rushing\PipelineRegistry\PipelineContext;
 use Rushing\PipelineRegistry\PipelineRegistry;
 use Rushing\PipelineRegistry\Stages\CopyFilesPipeline;
