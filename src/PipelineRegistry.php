@@ -6,6 +6,9 @@ use Illuminate\Contracts\Container\Container;
 use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
+use Rushing\Popcorn\Registries\IsRegistry;
+use Rushing\Popcorn\Registries\OnDuplicate;
+use Rushing\Popcorn\Registries\RegistryArity;
 use Symfony\Component\Finder\Finder;
 
 /**
@@ -23,6 +26,23 @@ use Symfony\Component\Finder\Finder;
  * packages contributing the same category never edit one shared file — each
  * ships its own `config/pipelines/{category}.php` and the registry accretes them.
  */
+#[IsRegistry(
+    root: 'pipelines',
+    of: 'named stage chains keyed `{category}:{subName}`, discovered per-package from '
+        .'`config/pipelines/*.php` — a place to name an Illuminate pipeline once and run it by name',
+    arity: RegistryArity::PickOne,
+    entryType: 'mixed',
+    onDuplicate: OnDuplicate::Supersede,
+    note: 'Two things a reader will otherwise get wrong. (1) The key `{category}:{subName}` is ONE '
+        .'segment spelled with a colon, legal since registry-kernel ticket 30 D9 widened `Key`\'s '
+        .'charset — `:` joins parts of one identity here, it does not separate two. (2) Arity is '
+        .'PickOne, NOT the ComposeMany the retired host-side descriptor claimed: a read engages exactly '
+        .'one entry (the named pipeline); the stage chain composed inside it is not a second set of '
+        .'entries. That is the under-described second level ticket 15 D10 found and ticket 47 is '
+        .'chartered to express as a list. `entryType` is `mixed` because an entry is a list of '
+        .'`[stage class, options]` tuples, not an object.',
+    order: 64,
+)]
 class PipelineRegistry
 {
     /** @var array<string, array<int, array{0: class-string, 1: array<string, mixed>}>> */
