@@ -30,17 +30,17 @@ use Symfony\Component\Finder\Finder;
     root: 'pipelines',
     of: 'named stage chains keyed `{category}:{subName}`, discovered per-package from '
         .'`config/pipelines/*.php` — a place to name an Illuminate pipeline once and run it by name',
-    arity: RegistryArity::PickOne,
+    arity: [RegistryArity::PickOne, RegistryArity::ComposeMany],
     entryType: 'mixed',
     onDuplicate: OnDuplicate::Supersede,
     note: 'Two things a reader will otherwise get wrong. (1) The key `{category}:{subName}` is ONE '
         .'segment spelled with a colon, legal since registry-kernel ticket 30 D9 widened `Key`\'s '
-        .'charset — `:` joins parts of one identity here, it does not separate two. (2) Arity is '
-        .'PickOne, NOT the ComposeMany the retired host-side descriptor claimed: a read engages exactly '
-        .'one entry (the named pipeline); the stage chain composed inside it is not a second set of '
-        .'entries. That is the under-described second level ticket 15 D10 found and ticket 47 is '
-        .'chartered to express as a list. `entryType` is `mixed` because an entry is a list of '
-        .'`[stage class, options]` tuples, not an object.',
+        .'charset — `:` joins parts of one identity here, it does not separate two. (2) The read is TWO '
+        .'steps: PickOne selects the named pipeline, then ComposeMany runs its ordered stages. The '
+        .'stages are not addressable entries of this registry — they have no keys — which is why the '
+        .'second step is a level of the arity and not a nested root. Ticket 15 D10 found this level '
+        .'missing and ticket 47 landed the list that expresses it. `entryType` is `mixed` because an '
+        .'entry is a list of `[stage class, options]` tuples, not an object.',
     order: 64,
 )]
 class PipelineRegistry
