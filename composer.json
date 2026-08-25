@@ -1,7 +1,12 @@
 {
     "name": "rushing/laravel-pipeline-registry",
-    "description": "A thin, declarative registry over Illuminate\\Pipeline: named, runtime-mutable pipelines assembled from [[StageClass::class, [...options]]] tuples, discovered per-package from config/pipelines/*.php (category = filename). Tier-A mechanism only — it owns the registry and the executor wiring, never the stages' domain logic.",
-    "keywords": ["laravel", "pipeline", "registry", "stages"],
+    "description": "A thin, declarative registry over Illuminate\\Pipeline: named, runtime-mutable pipelines assembled from [[StageClass::class, [...options]]] tuples, discovered per-package from config/pipelines/*.php (category = filename). Tier-A mechanism only \u2014 it owns the registry and the executor wiring, never the stages' domain logic.",
+    "keywords": [
+        "laravel",
+        "pipeline",
+        "registry",
+        "stages"
+    ],
     "type": "library",
     "license": "MIT",
     "authors": [
@@ -21,7 +26,8 @@
     "require-dev": {
         "laravel/pint": "^1.0",
         "orchestra/testbench": "^9.0|^10.0|^11.0",
-        "pestphp/pest": "^2.0|^3.0"
+        "pestphp/pest": "^2.0|^3.0",
+        "wikimedia/composer-merge-plugin": "^2.1"
     },
     "autoload": {
         "psr-4": {
@@ -41,11 +47,17 @@
             "providers": [
                 "Rushing\\PipelineRegistry\\PipelineRegistryServiceProvider"
             ]
+        },
+        "merge-plugin": {
+            "include": [
+                "composer.local.json"
+            ]
         }
     },
     "config": {
         "allow-plugins": {
-            "pestphp/pest-plugin": true
+            "pestphp/pest-plugin": true,
+            "wikimedia/composer-merge-plugin": true
         },
         "sort-packages": true
     },
