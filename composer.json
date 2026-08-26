@@ -20,6 +20,7 @@
         "illuminate/console": "^11.0|^12.0|^13.0",
         "illuminate/pipeline": "^11.0|^12.0|^13.0",
         "illuminate/support": "^11.0|^12.0|^13.0",
+        "rushing/laravel-popcorn": "dev-main",
         "rushing/php-popcorn": "dev-main",
         "symfony/finder": "^6.0|^7.0|^8.0"
     },
@@ -71,6 +72,10 @@
         {
             "type": "git",
             "url": "https://github.com/stephenr85/php-popcorn.git"
+        },
+        {
+            "type": "git",
+            "url": "https://github.com/stephenr85/laravel-popcorn.git"
         }
     ]
 }
