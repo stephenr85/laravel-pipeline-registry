@@ -130,15 +130,17 @@ it('refuses an entry that is not an ordered list of stage tuples', function () {
         ->toThrow(InvalidArgumentException::class, 'ORDERED LIST');
 });
 
-it('supersedes a re-registered name and appends it, which names() sorts back', function () {
-    // Sweep amendment A4: supersession APPENDS where array assignment held the slot. `names()` sorts,
-    // so the caller-facing enumeration is stable either way — pinned here rather than left to chance.
+it('supersedes a re-registered name in place, keeping its slot in keys()', function () {
+    // Sweep amendment A4 read the other way: supersession APPENDED where array assignment held the
+    // slot. Registry-kernel 62 made it an override IN PLACE, so `keys()` now matches what the array
+    // did. `names()` sorts, so the caller-facing enumeration was stable either way — both are pinned
+    // here rather than left to chance.
     $this->registry->register('alpha', [[EmitFileStage::class, ['path' => 'a', 'contents' => 'a']]]);
     $this->registry->register('beta', [[EmitFileStage::class, ['path' => 'b', 'contents' => 'b']]]);
     $this->registry->register('alpha', [[EmitFileStage::class, ['path' => 'a2', 'contents' => 'a2']]]);
 
     expect(array_map('strval', $this->registry->keys()))
-        ->toBe(['pipelines.beta', 'pipelines.alpha'])
+        ->toBe(['pipelines.alpha', 'pipelines.beta'])
         ->and($this->registry->names())->toBe(['alpha', 'beta'])
         ->and($this->registry->stagesFor('alpha'))->toBe([EmitFileStage::class])
         ->and($this->registry->run('alpha')->files)->toHaveKey('a2');
