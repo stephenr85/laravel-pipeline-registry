@@ -65,7 +65,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "scripts": {
-        "test": "vendor/bin/pest",
+        "test": "@php vendor/bin/pest",
         "pint": "@php -d memory_limit=512M vendor/bin/pint"
     },
     "repositories": [
