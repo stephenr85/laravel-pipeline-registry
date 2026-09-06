@@ -13,7 +13,6 @@ use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\OnDuplicate;
 use Rushing\Popcorn\Registries\Registry;
-use Rushing\Popcorn\Registries\RegistryArity;
 use Rushing\Popcorn\Registries\RegistryKey;
 use Symfony\Component\Finder\Finder;
 
@@ -39,28 +38,14 @@ use Symfony\Component\Finder\Finder;
  * `register('build:assets', [[Stage::class, []]])` door and the kernel's four-argument one are the same
  * method.
  *
- * **There is exactly ONE keyspace here, and that is why the arity is a LIST.** `pipelines.{name}` is
- * addressable; the stages inside a pipeline are not. They are an ordered positional list — `extend()`
- * appends, nothing ever derives a key for a stage, and no read looks a stage up by name — so the same
- * stage class legitimately appears many times in one pipeline, which no keyspace could hold. That makes
- * the second step (`ComposeMany` over the stages) a LEVEL OF THE READ and not a nested root, and it is
- * why ticket 26 D0's longest-prefix branch routing has nothing to route here.
+ * `pipelines.{name}` addresses a whole pipeline. Its stages are an ordered positional list:
+ * `extend()` appends stages, and the same class may appear more than once.
  */
 #[IsRegistry(
     root: 'pipelines',
-    of: 'named stage chains keyed `{category}:{subName}`, discovered per-package from '
-        .'`config/pipelines/*.php` — a place to name an Illuminate pipeline once and run it by name',
-    arity: [RegistryArity::PickOne, RegistryArity::ComposeMany],
     entryType: 'mixed',
     onDuplicate: OnDuplicate::Supersede,
-    note: 'Two things a reader will otherwise get wrong. (1) The key `{category}:{subName}` is ONE '
-        .'segment spelled with a colon, legal since registry-kernel ticket 30 D9 widened `Key`\'s '
-        .'charset — `:` joins parts of one identity here, it does not separate two. (2) The read is TWO '
-        .'steps: PickOne selects the named pipeline, then ComposeMany runs its ordered stages. The '
-        .'stages are not addressable entries of this registry — they have no keys — which is why the '
-        .'second step is a level of the arity and not a nested root. Ticket 15 D10 found this level '
-        .'missing and ticket 47 landed the list that expresses it. `entryType` is `mixed` because an '
-        .'entry is a list of `[stage class, options]` tuples, not an object.',
+    description: 'Named stage chains discovered per package from config/pipelines/*.php. Select a pipeline by its category:subName key, then run its ordered stage tuples. The colon belongs to one key segment. Stages have no individual keys and may repeat.',
     order: 64,
 )]
 class PipelineRegistry implements Gated, Registry
@@ -90,8 +75,7 @@ class PipelineRegistry implements Gated, Registry
         if (! is_array($entry) || ! array_is_list($entry)) {
             throw new InvalidArgumentException(sprintf(
                 'A `%s` entry is an ORDERED LIST of `[stage class, options]` tuples; got %s for `%s`. '
-                .'The stages have no keys — that is why the second step of the read is a level of the '
-                .'arity and not a nested root.',
+                .'Stages are positional entries and have no individual keys.',
                 self::class,
                 get_debug_type($entry),
                 (string) $key,
@@ -212,8 +196,7 @@ class PipelineRegistry implements Gated, Registry
      * The registered pipeline names, as callers spelled them — `relativeKeys()`, not `keys()`, because
      * keys go relative in and absolute out (ticket 20 D2) and this list is caller-facing.
      *
-     * Sorted, deliberately: registration order is the kernel's guarantee for a `RunAll` read, but this
-     * is a `PickOne` keyspace whose only enumeration is human-facing (`pipelines:list`). Sorting also
+     * Sorted for the human-facing pipeline list (`pipelines:list`). Sorting also
      * makes the list stable under supersession, which APPENDS rather than holding an entry's slot.
      *
      * @return array<int, string>
