@@ -11,7 +11,7 @@ use Rushing\Popcorn\Registries\Authorizer;
 use Rushing\Popcorn\Registries\BasicRegistry;
 use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
-use Rushing\Popcorn\Registries\OnDuplicate;
+use Rushing\Popcorn\Registries\OnKeyDuplicate;
 use Rushing\Popcorn\Registries\Registry;
 use Rushing\Popcorn\Registries\RegistryKey;
 use Symfony\Component\Finder\Finder;
@@ -44,7 +44,7 @@ use Symfony\Component\Finder\Finder;
 #[IsRegistry(
     root: 'pipelines',
     entryType: 'mixed',
-    onDuplicate: OnDuplicate::Supersede,
+    onKeyDuplicate: OnKeyDuplicate::Supersede,
     description: 'Named stage chains discovered per package from config/pipelines/*.php. Select a pipeline by its category:subName key, then run its ordered stage tuples. The colon belongs to one key segment. Stages have no individual keys and may repeat.',
     order: 64,
 )]
