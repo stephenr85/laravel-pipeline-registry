@@ -64,3 +64,10 @@ with. Send your own passable to `run()` to use a different shape.
 
 `register()` / `extend()` / `has()` / `names()` mutate and inspect the registry
 at runtime — a package can append a stage to a pipeline another package declared.
+
+## Registries
+
+This package declares one registry:
+
+- [`pipelines`](docs/registries/pipelines.mdx): the named chains of Laravel pipes, keyed
+  `category:subName`. `mergePipelinesFrom()` and `register()` both write here.
