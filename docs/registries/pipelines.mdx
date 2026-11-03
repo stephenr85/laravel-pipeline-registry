@@ -1,0 +1,106 @@
+---
+title: Named pipelines
+segment: pipelines
+nav_order: 64
+excerpt: Ordered chains of Laravel pipes, declared once by name in config/pipelines/*.php and run by name from anywhere.
+---
+
+# Named pipelines
+
+`pipelines` holds **named pipelines**: ordered lists of stages that run over Laravel's own
+`Illuminate\Pipeline`. You declare a pipeline once, as an array of `[StageClass::class, [options]]`
+tuples, and run it by name from code or the console. Laravel executes it; this registry is only the
+place the names live.
+
+A stage is an ordinary Laravel pipe that takes its options in the constructor:
+
+```php
+final class MinifyStage
+{
+    public function __construct(private array $options = []) {}
+
+    public function handle(PipelineContext $context, Closure $next): PipelineContext
+    {
+        // …change $context->files
+        return $next($context);
+    }
+}
+```
+
+{/* registry-facts:start — generated from the #[IsRegistry] declaration by `splicewire:beam:docs:registries:scaffold`. Rerun the command; do not edit between these markers. */}
+
+- **Root:** `pipelines`
+- **Entries:** any value (`mixed`)
+- **Duplicate keys:** Supersede — a later registration under a taken key replaces the earlier entry, in its place
+- **Population:** Optional — an empty registry is normal
+- **Order:** `64` (display order, ascending)
+- **Declared by:** `Rushing\PipelineRegistry\PipelineRegistry`
+
+{/* registry-facts:end */}
+
+## Declaring pipelines in config
+
+Each package ships its own `config/pipelines/{category}.php`, so no two packages edit one shared
+file. The filename is the **category** and each top-level key is a **sub-name**, and the pipeline is
+registered as `category:sub-name`:
+
+```php
+// config/pipelines/assets.php
+return [
+    'build' => [
+        [MinifyStage::class, ['level' => 2]],
+        [CopyFilesPipeline::class, ['to' => public_path('build')]],
+    ],
+];
+// registered as "assets:build"
+```
+
+A file that returns a plain list registers one pipeline named after the category itself. Load a
+package's directory from its service provider's `boot()`:
+
+```php
+$this->app->make(PipelineRegistry::class)
+    ->mergePipelinesFrom(__DIR__.'/../config/pipelines');
+```
+
+## Running one
+
+```php
+$context = app(PipelineRegistry::class)->run('assets:build');
+```
+
+With no passable, `run()` sends a fresh `PipelineContext`: a `files` map of relative path to
+contents, a `log` trace and a free-form `data` bag. The shipped `CopyFilesPipeline` stage writes
+`files` to its `to` directory, so an emitting pipeline usually ends with it. Pass your own passable
+to run a pipeline over a different shape.
+
+Running a name nobody registered throws, and the message lists the names that are registered. From
+the console, `php artisan pipelines:list` and `php artisan pipelines:run assets:build` do the same.
+
+## Changing pipelines at runtime
+
+- `register('assets:build', [...])` adds or replaces a whole pipeline.
+- `extend('assets:build', [GzipStage::class, []])` appends one stage to a pipeline, including one
+  another package declared.
+- `has()`, `names()` and `stagesFor()` inspect what's registered.
+
+An entry must be an ordered **list** of tuples. A bare class name or a keyed array is refused rather
+than run as a pipeline nobody wrote. Stages have no keys of their own, so the same stage can appear
+twice in one pipeline.
+
+## Keys
+
+`assets:build` is one key segment, not two: the colon is part of the name, so `assets` on its own
+isn't a branch you can list.
+
+## Duplicates
+
+The policy is **supersede**: registering a taken name replaces the whole pipeline. `extend()` is
+how you add to one instead.
+
+## Going deeper
+
+The source is
+[`PipelineRegistry`](https://github.com/stephenr85/laravel-pipeline-registry/blob/main/src/PipelineRegistry.php).
+The [laravel-pipeline-registry README](https://github.com/stephenr85/laravel-pipeline-registry#readme)
+is short and covers the same ground.
