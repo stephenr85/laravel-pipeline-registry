@@ -4,9 +4,11 @@ use Rushing\PipelineRegistry\PipelineContext;
 use Rushing\PipelineRegistry\PipelineRegistry;
 use Rushing\PipelineRegistry\Stages\CopyFilesPipeline;
 use Rushing\PipelineRegistry\Tests\Fixtures\EmitFileStage;
+use Rushing\Popcorn\Registries\Authorizer;
 use Rushing\Popcorn\Registries\Exceptions\RegistryMiss;
 use Rushing\Popcorn\Registries\Key;
 use Rushing\Popcorn\Registries\RegistryIndex;
+use Rushing\Popcorn\Registries\RegistryKey;
 
 beforeEach(function () {
     $this->registry = app(PipelineRegistry::class);
@@ -144,4 +146,51 @@ it('supersedes a re-registered name in place, keeping its slot in keys()', funct
         ->and($this->registry->names())->toBe(['alpha', 'beta'])
         ->and($this->registry->stagesFor('alpha'))->toBe([EmitFileStage::class])
         ->and($this->registry->run('alpha')->files)->toHaveKey('a2');
+});
+
+/*
+ * The authorizer reaches the composed store on both of the index's push edges (registry-kernel 20 D6),
+ * in 74's acceptance form: a deny-all authorizer meets an ability-carrying entry, read back through this
+ * registry's own public reads. The index pushes into this class because it is `Gated`, and
+ * `ForwardsToRegistryStore` hands the authorizer to the held store, where the filter runs.
+ *
+ * Each test routes through the index first or last on purpose. A baked root is pending until the index
+ * hydrates it, and the push happens on hydration, so a read that never touched the index would not be
+ * asking the question.
+ */
+it('is filtered by an authorizer the index installs after it holds this registry', function () {
+    $this->registry->register('open', [[EmitFileStage::class, []]]);
+    $this->registry->register('closed', [[EmitFileStage::class, []]], ability: 'run-closed');
+
+    expect(app(RegistryIndex::class)->resolve('pipelines'))->toBe($this->registry)
+        ->and($this->registry->has('closed'))->toBeTrue();
+
+    app(RegistryIndex::class)->authorizeWith(new class implements Authorizer
+    {
+        public function allows(string $ability, RegistryKey $key): bool
+        {
+            return false;
+        }
+    });
+
+    expect($this->registry->has('closed'))->toBeFalse()
+        ->and($this->registry->has('open'))->toBeTrue()
+        ->and(array_map('strval', $this->registry->keys()))->toBe(['pipelines.open'])
+        ->and($this->registry->unfiltered()->has('closed'))->toBeTrue();
+});
+
+it('is filtered by an authorizer the index installed before it held this registry', function () {
+    app(RegistryIndex::class)->authorizeWith(new class implements Authorizer
+    {
+        public function allows(string $ability, RegistryKey $key): bool
+        {
+            return false;
+        }
+    });
+
+    $this->registry->register('closed', [[EmitFileStage::class, []]], ability: 'run-closed');
+
+    expect(app(RegistryIndex::class)->resolve('pipelines'))->toBe($this->registry)
+        ->and($this->registry->has('closed'))->toBeFalse()
+        ->and($this->registry->unfiltered()->has('closed'))->toBeTrue();
 });

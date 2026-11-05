@@ -7,8 +7,8 @@ use Illuminate\Pipeline\Pipeline;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 use RuntimeException;
-use Rushing\Popcorn\Registries\Authorizer;
 use Rushing\Popcorn\Registries\BasicRegistry;
+use Rushing\Popcorn\Registries\ForwardsToRegistryStore;
 use Rushing\Popcorn\Registries\Gated;
 use Rushing\Popcorn\Registries\IsRegistry;
 use Rushing\Popcorn\Registries\OnKeyDuplicate;
@@ -34,9 +34,13 @@ use Symfony\Component\Finder\Finder;
  * ## It is also a `Registry`, natively (registry-kernel ticket 38)
  *
  * A {@see BasicRegistry} held as a FIELD, never a base class — the private `[name => tuples]` array is
- * gone and every read delegates. `register()` widens contravariantly, so the package's own
- * `register('build:assets', [[Stage::class, []]])` door and the kernel's four-argument one are the same
- * method.
+ * gone and every read delegates through {@see ForwardsToRegistryStore}, the authorizer included: the
+ * index pushes it here on both edges (ticket 20 D6) and the trait passes it to the field. No pipeline
+ * declares an `ability` today, and an ungated entry short-circuits before the authorizer is consulted,
+ * so this costs nothing until a host closes the surface.
+ *
+ * `register()` widens contravariantly, so the package's own `register('build:assets', [[Stage::class,
+ * []]])` door and the kernel's four-argument one are the same method.
  *
  * `pipelines.{name}` addresses a whole pipeline. Its stages are an ordered positional list:
  * `extend()` appends stages, and the same class may appear more than once.
@@ -50,6 +54,8 @@ use Symfony\Component\Finder\Finder;
 )]
 class PipelineRegistry implements Gated, Registry
 {
+    use ForwardsToRegistryStore;
+
     private BasicRegistry $pipelines;
 
     public function __construct(private Container $container)
@@ -150,48 +156,6 @@ class PipelineRegistry implements Gated, Registry
         return $this;
     }
 
-    public function has(RegistryKey|string $key): bool
-    {
-        return $this->pipelines->has($key);
-    }
-
-    public function resolve(RegistryKey|string $key): mixed
-    {
-        return $this->pipelines->resolve($key);
-    }
-
-    public function tryResolve(RegistryKey|string $key): mixed
-    {
-        return $this->pipelines->tryResolve($key);
-    }
-
-    public function matches(RegistryKey|string $key): array
-    {
-        return $this->pipelines->matches($key);
-    }
-
-    public function keys(): array
-    {
-        return $this->pipelines->keys();
-    }
-
-    public function unfiltered(): Registry
-    {
-        return $this->pipelines->unfiltered();
-    }
-
-    /**
-     * {@see Gated} — the index pushes the host's authorizer down here on both edges (ticket 20 D6).
-     * No pipeline declares an `ability` today, and an ungated entry short-circuits before the
-     * authorizer is consulted, so this costs nothing until a host closes the surface.
-     */
-    public function authorizeWith(?Authorizer $authorizer): static
-    {
-        $this->pipelines->authorizeWith($authorizer);
-
-        return $this;
-    }
-
     /**
      * The registered pipeline names, as callers spelled them — `relativeKeys()`, not `keys()`, because
      * keys go relative in and absolute out (ticket 20 D2) and this list is caller-facing.
@@ -244,6 +208,12 @@ class PipelineRegistry implements Gated, Registry
     public function stagesFor(string $name): array
     {
         return array_map(fn (array $tuple): string => $tuple[0], $this->stagesTuples($name));
+    }
+
+    /** {@see ForwardsToRegistryStore}: the held store every forwarded read goes through. */
+    protected function store(): BasicRegistry
+    {
+        return $this->pipelines;
     }
 
     /**
