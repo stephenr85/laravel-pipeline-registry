@@ -5,6 +5,7 @@ namespace Rushing\PipelineRegistry;
 use Illuminate\Support\ServiceProvider;
 use Rushing\PipelineRegistry\Commands\ListPipelinesCommand;
 use Rushing\PipelineRegistry\Commands\RunPipelineCommand;
+use Rushing\Popcorn\Registries\Registrant;
 
 /**
  * Binds the {@see PipelineRegistry} as a singleton and registers the
@@ -17,11 +18,21 @@ class PipelineRegistryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        Registrant::scoped('rushing/laravel-pipeline-registry', $this->registerScoped(...));
+    }
+
+    private function registerScoped(): void
+    {
         $this->app->singleton(PipelineRegistry::class, fn ($app) => new PipelineRegistry($app));
         $this->app->alias(PipelineRegistry::class, 'pipeline.registry');
     }
 
     public function boot(): void
+    {
+        Registrant::scoped('rushing/laravel-pipeline-registry', $this->bootScoped(...));
+    }
+
+    private function bootScoped(): void
     {
 
         if ($this->app->runningInConsole()) {

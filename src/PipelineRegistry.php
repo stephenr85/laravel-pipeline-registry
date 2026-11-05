@@ -105,8 +105,8 @@ class PipelineRegistry implements Gated, Registry
     {
         return $this->register(
             $name,
+            // No $by: the caller's registrant scope names who extended the pipeline.
             [...$this->stagesTuples($name), [$stage[0], $stage[1] ?? []]],
-            by: 'extend',
         );
     }
 
